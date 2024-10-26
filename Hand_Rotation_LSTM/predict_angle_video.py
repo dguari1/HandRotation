@@ -4,11 +4,15 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+import torch.backends
 from ultralytics import YOLO
 from torchvision import transforms, models
 import torch.nn as nn
 from PIL import Image
 import math
+import time
+
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 # Function to convert angle to sine and cosine components
 def angle_to_sin_cos(angle):
@@ -19,7 +23,7 @@ def angle_to_sin_cos(angle):
 class ResNetForRegression(nn.Module):
     def __init__(self):
         super(ResNetForRegression, self).__init__()
-        self.resnet = models.resnet50(pretrained=True)
+        self.resnet = models.resnet50(weights=None)
         self.resnet.fc = nn.Linear(self.resnet.fc.in_features, 1)
 
     def forward(self, x):
@@ -83,24 +87,34 @@ class DeepBiLSTMModel(nn.Module):
 
 # Load YOLO model
 def load_yolo_model():
-    model = YOLO('./weights/best.pt')
+    model = YOLO('weights/best.pt')
+    #if cuda available, use it
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #if mps available use it    
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    model.to(device)
     return model
 
 # Load ResNet regression model
 def load_regression_model():
     model = ResNetForRegression()
-    model.load_state_dict(torch.load('./weights/resnet_best_val_loss.pth', map_location='cpu'))
+    model.load_state_dict(torch.load('weights/resnet_best_val_loss.pth', map_location='cpu'))
     model.eval()
+    #if cuda available, use it
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #if mps available use it    
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model.to(device)
     return model, device
 
 # Load LSTM model
 def load_lstm_model():
     model = DeepBiLSTMModel(input_size=2, hidden_size=128, num_layers=4, output_size=2, dropout=0.4)
-    model.load_state_dict(torch.load('./weights/best_val_loss_lstm.pth', map_location='cpu'))
+    model.load_state_dict(torch.load('weights/best_val_loss_lstm.pth', map_location='cpu'))
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #if mps available use it    
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model.to(device)
     return model, device
 
@@ -225,4 +239,6 @@ if __name__ == "__main__":
     parser.add_argument('--hand', type=str, choices=['left', 'right'], required=True, help='Hand to predict (left or right)')
 
     args = parser.parse_args()
+    st = time.time()
     process_single_video(args.video_path, args.output_path, args.hand)
+    print(f"Total time taken: {time.time()-st} seconds")

@@ -9,11 +9,13 @@ from torchvision import transforms, models
 import torch.nn as nn
 from PIL import Image
 
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
 # Define ResNet Regression Model
 class ResNetForRegression(nn.Module):
     def __init__(self):
         super(ResNetForRegression, self).__init__()
-        self.resnet = models.resnet50(pretrained=True)  # Using ResNet-50
+        self.resnet = models.resnet50(weights=None)  # Using ResNet-50
         self.resnet.fc = nn.Linear(self.resnet.fc.in_features, 1)  # Output a single continuous value for regression
 
     def forward(self, x):
@@ -22,6 +24,11 @@ class ResNetForRegression(nn.Module):
 # Load YOLO model
 def load_yolo_model():
     model = YOLO('./weights/best.pt')  # Path to the best YOLO weights
+    #if cuda available, use it
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #if mps available use it    
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    model.to(device)
     return model
 
 # Load ResNet regression model
@@ -29,7 +36,10 @@ def load_regression_model():
     model = ResNetForRegression()
     model.load_state_dict(torch.load('./weights/resnet_best_val_loss.pth', map_location='cpu'))
     model.eval()
+    #if cuda available, use it
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #if mps available use it    
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model.to(device)
     return model, device
 
