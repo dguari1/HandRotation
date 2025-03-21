@@ -24,10 +24,17 @@ class ResNetForRegression(nn.Module):
 # Load YOLO model
 def load_yolo_model():
     model = YOLO('./weights/best.pt')  # Path to the best YOLO weights
-    #if cuda available, use it
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #if mps available use it    
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    # #if cuda available, use it
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # #if mps available use it    
+    # device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    #send model to devive 
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     model.to(device)
     return model
 
@@ -36,10 +43,17 @@ def load_regression_model():
     model = ResNetForRegression()
     model.load_state_dict(torch.load('./weights/resnet_best_val_loss.pth', map_location='cpu'))
     model.eval()
-    #if cuda available, use it
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #if mps available use it    
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    # #if cuda available, use it
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # #if mps available use it    
+    # device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    #send model to devive 
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     model.to(device)
     return model, device
 
